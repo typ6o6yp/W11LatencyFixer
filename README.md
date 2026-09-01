@@ -1,4 +1,4 @@
-
+<img width="1374" height="1139" alt="Снимок экрана 2026-09-01 161854" src="https://github.com/user-attachments/assets/ca6777f6-1627-40b8-9088-ec2743f769c4" />
 
 🇷🇺 Русский вариант (README.md)
 
@@ -62,6 +62,12 @@ DPC-задержки до рекордных < 150\ \mu\text{s}, освобод�
     динамическая адаптивная сетка капсул ядер).
   - Бэкенд: Нативные вызовы winreg, Windows PnP API, NDIS Network API, psutil,
     PowerShell.
+
+
+
+<img width="1375" height="603" alt="image" src="https://github.com/user-attachments/assets/1d1d6887-2531-477d-8f5a-993d96303e86" />
+
+#LatencyMon #MsiUtilityv3 #Interrupt_Affinity_Policy_Tool<img width="1374" height="1139" alt="Снимок экрана 2026-09-01 161854" src="https://github.com/user-attachments/assets/528bbc00-9f22-48c3-a525-d837d975b740" />
 
 ============================================
 
