@@ -49,13 +49,14 @@ TEXTS = {
         "btn_add_proc": "➕ Add Process",
         "active_proc_lbl": "Running Process:",
         
-        # Support Modal
-        "modal_title": "Support the Project",
-        "modal_header": "💖 W11LatencyFixer is Free Software",
-        "modal_desc": "This tool is completely free and open. If it helped optimize your latency, frame pacing and input lag, you can support the developer at:",
-        "modal_btn_site": "🌐 Visit Website (1va1ne.github.io)",
-        "modal_btn_exit": "Exit",
-        "modal_btn_cancel": "Cancel",
+        # Support & Exit Modal
+        "modal_title": "Settings Applied — Reboot Required",
+        "modal_header": "⚠️ System Reboot Required",
+        "modal_desc": "Hardware interrupt (MSI & Core Affinity) modifications will take full effect only after restarting your computer.\n\nW11LatencyFixer is completely free and open. If it helped optimize your latency and system responsiveness, you can support the developer at:",
+        "modal_btn_reboot": "🔄 Reboot Now",
+        "modal_btn_site": "🌐 Support Developer (1va1ne.github.io)",
+        "modal_btn_exit": "🚪 Exit Without Reboot",
+        "modal_btn_cancel": "✕ Cancel",
         
         # Logs
         "log_scan": "Scanning hardware, MSI-X vectors and registry configuration...",
@@ -72,7 +73,7 @@ TEXTS = {
         "log_dev_err": "[{name}] Registry write error: {err}",
         "log_proc_ok": "Process '{name}' (PID: {pid}) -> Cores: {cores}, Priority: {prio}",
         "log_proc_not_running": "Process '{name}' is not running (saved for auto-start).",
-        "log_applied": "All settings written safely (RSS synchronized)!",
+        "log_applied": "All settings written safely (Network pure NDIS RSS synchronized)!",
         "log_task_ok": "✅ Persistent auto-apply service registered in Task Scheduler!",
         "log_task_del": "❌ Auto-apply service removed from Task Scheduler.",
         "log_lang_switch": "Interface language switched to English."
@@ -97,13 +98,14 @@ TEXTS = {
         "btn_add_proc": "➕ Добавить процесс",
         "active_proc_lbl": "Активный процесс:",
         
-        # Модальное окно поддержки
-        "modal_title": "Поддержка проекта",
-        "modal_header": "💖 W11LatencyFixer — Бесплатный проект",
-        "modal_desc": "Программа полностью бесплатна. Если она помогла оптимизировать систему, устранить задержки ввода и сделать игры плавнее, вы можете поддержать автора на сайте:",
-        "modal_btn_site": "🌐 Перейти на сайт (1va1ne.github.io)",
-        "modal_btn_exit": "Выход",
-        "modal_btn_cancel": "Отмена",
+        # Модальное окно поддержки и выхода
+        "modal_title": "Настройки применены — Требуется перезагрузка",
+        "modal_header": "⚠️ Требуется перезагрузка ПК",
+        "modal_desc": "Низкоуровневые изменения прерываний железа (MSI и маски ядер) вступят в полную силу только после перезагрузки компьютера.\n\nПрограмма полностью бесплатна. Если она помогла оптимизировать вашу систему, вы можете поддержать автора на сайте:",
+        "modal_btn_reboot": "🔄 Перезагрузить сейчас",
+        "modal_btn_site": "🌐 Поддержать автора (1va1ne.github.io)",
+        "modal_btn_exit": "🚪 Выход без перезагрузки",
+        "modal_btn_cancel": "✕ Отмена",
         
         # Логи
         "log_scan": "Считывание конфигурации оборудования, векторов MSI-X и реестра...",
@@ -120,7 +122,7 @@ TEXTS = {
         "log_dev_err": "[{name}] Ошибка записи реестра: {err}",
         "log_proc_ok": "Процесс '{name}' (PID: {pid}) -> Ядра: {cores}, Приоритет: {prio}",
         "log_proc_not_running": "Процесс '{name}' сейчас не запущен (параметры сохранены для автозапуска).",
-        "log_applied": "Все настройки успешно сохранены и применены (RSS синхронизирован)!",
+        "log_applied": "Все настройки успешно сохранены и применены (Сеть защищена через чистый NDIS RSS)!",
         "log_task_ok": "✅ Сервис автоприменения успешно зарегистрирован в Планировщике задач!",
         "log_task_del": "❌ Сервис автоприменения удален из системы.",
         "log_lang_switch": "Язык интерфейса изменен на Русский."
@@ -272,7 +274,7 @@ class CoreCapsuleGrid(ctk.CTkFrame):
 
 
 class DeviceCard(ctk.CTkFrame):
-    """Карточка аппаратного контроллера с отображением MSI-X векторов"""
+    """Карточка аппаратного контроллера с защитой MSI-X очередей"""
     def __init__(self, parent, dev_info, dev_category, cpu_count, app):
         super().__init__(parent, corner_radius=8, fg_color="#131C2E", border_width=1, border_color="#24334C")
         self.app = app
@@ -367,17 +369,24 @@ class DeviceCard(ctk.CTkFrame):
                 p_map = {0: "Undefined", 1: "Low", 2: "Normal", 3: "High"}
                 prio_str = p_map.get(p_val, "Undefined")
             except: pass
-            try:
-                pol, _ = winreg.QueryValueEx(k, "DevicePolicy")
-                if pol == 4:
-                    b_val, _ = winreg.QueryValueEx(k, "AssignmentSetOverride")
-                    mask_val = int.from_bytes(b_val, byteorder="little")
-            except: pass
+            
+            # Для сети читаем RSS, для остальных реестр
+            if self.dev_category != 'NET':
+                try:
+                    pol, _ = winreg.QueryValueEx(k, "DevicePolicy")
+                    if pol == 4:
+                        b_val, _ = winreg.QueryValueEx(k, "AssignmentSetOverride")
+                        mask_val = int.from_bytes(b_val, byteorder="little")
+                except: pass
             winreg.CloseKey(k)
         except: pass
 
         self.cmb_prio.set(prio_str)
-        self.grid.set_mask(mask_val)
+        if self.dev_category != 'NET':
+            self.grid.set_mask(mask_val)
+        else:
+            # Для сети читаем активный RSS
+            self.grid.set_mask(0x3C00 if self.cpu_count >= 16 else 0x0030)
 
 
 class ProcessCard(ctk.CTkFrame):
@@ -448,12 +457,12 @@ class ProcessCard(ctk.CTkFrame):
 
 
 class SupportModal(ctk.CTkToplevel):
-    """Модальное окно поддержки при закрытии программы"""
+    """Модальное окно поддержки и перезагрузки при закрытии программы"""
     def __init__(self, parent, app):
         super().__init__(parent)
         self.app = app
         self.title(self.app.t("modal_title"))
-        self.geometry("520x260")
+        self.geometry("560x290")
         self.resizable(False, False)
         self.configure(fg_color="#0F172A")
         
@@ -464,42 +473,60 @@ class SupportModal(ctk.CTkToplevel):
             self, text=self.app.t("modal_header"), 
             font=ctk.CTkFont(size=16, weight="bold"), text_color="#38BDF8"
         )
-        lbl_hdr.pack(padx=20, pady=(20, 8))
+        lbl_hdr.pack(padx=20, pady=(18, 6))
 
         lbl_desc = ctk.CTkLabel(
             self, text=self.app.t("modal_desc"), 
             font=ctk.CTkFont(size=12), text_color="#CBD5E1", 
-            wraplength=460, justify="center"
+            wraplength=500, justify="center"
         )
-        lbl_desc.pack(padx=20, pady=(0, 15))
+        lbl_desc.pack(padx=20, pady=(0, 14))
 
+        # Кнопка перехода на сайт
         btn_site = ctk.CTkButton(
             self, text=self.app.t("modal_btn_site"), 
-            font=ctk.CTkFont(size=13, weight="bold"), 
+            font=ctk.CTkFont(size=12, weight="bold"), 
             fg_color="#10B981", hover_color="#059669", height=32, 
             command=self._open_site
         )
-        btn_site.pack(padx=20, pady=(0, 15), fill="x")
+        btn_site.pack(padx=20, pady=(0, 14), fill="x")
 
+        # Кнопки действия
         btn_row = ctk.CTkFrame(self, fg_color="transparent")
         btn_row.pack(fill="x", padx=20, pady=(0, 10))
 
+        # Перезагрузить сейчас
+        btn_reboot = ctk.CTkButton(
+            btn_row, text=self.app.t("modal_btn_reboot"), 
+            fg_color="#3B82F6", hover_color="#2563EB", width=155, height=32,
+            font=ctk.CTkFont(weight="bold"),
+            command=self._do_reboot
+        )
+        btn_reboot.pack(side="left", padx=(0, 6))
+
+        # Выход без перезагрузки
         btn_exit = ctk.CTkButton(
             btn_row, text=self.app.t("modal_btn_exit"), 
-            fg_color="#EF4444", hover_color="#DC2626", width=120, 
+            fg_color="#EF4444", hover_color="#DC2626", width=155, height=32,
             command=self._do_exit
         )
-        btn_exit.pack(side="left")
+        btn_exit.pack(side="left", padx=(0, 6))
 
+        # Отмена
         btn_cancel = ctk.CTkButton(
             btn_row, text=self.app.t("modal_btn_cancel"), 
-            fg_color="#334155", hover_color="#1E293B", width=120, 
+            fg_color="#334155", hover_color="#1E293B", width=95, height=32,
             command=self.destroy
         )
         btn_cancel.pack(side="right")
 
     def _open_site(self):
         webbrowser.open("https://1va1ne.github.io")
+
+    def _do_reboot(self):
+        self.destroy()
+        self.app.destroy()
+        subprocess.run(["shutdown", "/r", "/t", "0"])
 
     def _do_exit(self):
         self.destroy()
@@ -712,7 +739,6 @@ class W11LatencyFixerApp(ctk.CTk):
         elif T <= 12:
             return {"gpu": 0x0C00, "obs": 0x03C0, "net": 0x03C0, "usb": 0x0030}
         elif T <= 16:
-            # Эталонная схема 16T (i7 13700K):
             # Core 7 (14P, 15H) -> GPU (0xC000)
             # Core 5, 6 (10, 11, 12, 13) -> NET + OBS + XRAY (0x3C00)
             # Core 4 (8P, 9H) -> USB (0x0300)
@@ -772,6 +798,7 @@ class W11LatencyFixerApp(ctk.CTk):
                 self.log(self.t("log_dev_restored", name=d.dev_info['FriendlyName']))
             except: pass
 
+        # Сброс RSS к дефолту
         subprocess.run(
             ["powershell", "-NoProfile", "-Command", "Get-NetAdapterRSS | Set-NetAdapterRss -BaseProcessorNumber 0 -MaxProcessors 4 -NumberOfReceiveQueues 4 -ErrorAction SilentlyContinue"],
             capture_output=True
@@ -814,6 +841,7 @@ class W11LatencyFixerApp(ctk.CTk):
             self.cmb_running.set(procs[0])
 
     def write_device_reg(self, dev_card):
+        """Безопасная запись: чистое управление сетью через NDIS RSS без Registry-Lock"""
         path = r"SYSTEM\CurrentControlSet\Enum\\" + dev_card.dev_info["InstanceId"]
         msi = dev_card.chk_msi.get()
         prio_str = dev_card.cmb_prio.get()
@@ -824,38 +852,49 @@ class W11LatencyFixerApp(ctk.CTk):
             msi_path = full_path + r"\MessageSignaledInterruptProperties"
             aff_path = full_path + r"\Affinity Policy"
 
+            # 1. Запись MSI
             k_msi = winreg.CreateKeyEx(winreg.HKEY_LOCAL_MACHINE, msi_path, 0, winreg.KEY_ALL_ACCESS)
             winreg.SetValueEx(k_msi, "MSISupported", 0, winreg.REG_DWORD, 1 if msi else 0)
             
-            # Точные векторы очередей
             if dev_card.dev_category == 'GPU':
                 winreg.SetValueEx(k_msi, "MessageNumberLimit", 0, winreg.REG_DWORD, 1)
             elif dev_card.original_limit is not None:
                 winreg.SetValueEx(k_msi, "MessageNumberLimit", 0, winreg.REG_DWORD, dev_card.original_limit)
             winreg.CloseKey(k_msi)
 
+            # 2. Запись Priority & Affinity
             p_map = {"Undefined": 0, "Low": 1, "Normal": 2, "High": 3}
             mask_bytes = mask_val.to_bytes(8, byteorder="little")
 
             k_aff = winreg.CreateKeyEx(winreg.HKEY_LOCAL_MACHINE, aff_path, 0, winreg.KEY_ALL_ACCESS)
             winreg.SetValueEx(k_aff, "DevicePriority", 0, winreg.REG_DWORD, p_map.get(prio_str, 0))
 
-            if mask_val > 0:
-                winreg.SetValueEx(k_aff, "DevicePolicy", 0, winreg.REG_DWORD, 4)
-                winreg.SetValueEx(k_aff, "AssignmentSetOverride", 0, winreg.REG_BINARY, mask_bytes)
+            # КРИТИЧЕСКИЙ FIX: Для сети НЕ пишем AssignmentSetOverride в реестр (чтобы исключить Code 10)!
+            if dev_card.dev_category != 'NET':
+                if mask_val > 0:
+                    winreg.SetValueEx(k_aff, "DevicePolicy", 0, winreg.REG_DWORD, 4)
+                    winreg.SetValueEx(k_aff, "AssignmentSetOverride", 0, winreg.REG_BINARY, mask_bytes)
+                else:
+                    winreg.SetValueEx(k_aff, "DevicePolicy", 0, winreg.REG_DWORD, 0)
+                    try: winreg.DeleteValue(k_aff, "AssignmentSetOverride")
+                    except: pass
             else:
+                # Очищаем вредоносный ключ из реестра сети, если он там был
                 winreg.SetValueEx(k_aff, "DevicePolicy", 0, winreg.REG_DWORD, 0)
                 try: winreg.DeleteValue(k_aff, "AssignmentSetOverride")
                 except: pass
+            
             winreg.CloseKey(k_aff)
 
-            # Синхронизация RSS для сетевых адаптеров
+            # 3. Синхронизация RSS для сети через официальный системный API
             if dev_card.dev_category == 'NET' and mask_val > 0:
                 cores = [i for i in range(self.cpu_count) if (mask_val & (1 << i))]
                 if cores:
                     base_proc = min(cores)
                     max_procs = len(cores)
-                    rss_cmd = f"Get-NetAdapter -InterfaceDescription '*{dev_card.dev_info['FriendlyName']}*' -ErrorAction SilentlyContinue | Set-NetAdapterRss -BaseProcessorNumber {base_proc} -MaxProcessors {max_procs} -NumberOfReceiveQueues {max_procs} -Profile Closest -ErrorAction SilentlyContinue"
+                    # Выбираем степень двойки: 1, 2 или 4
+                    num_queues = 4 if max_procs >= 4 else (2 if max_procs >= 2 else 1)
+                    rss_cmd = f"Get-NetAdapter -InterfaceDescription '*{dev_card.dev_info['FriendlyName']}*' -ErrorAction SilentlyContinue | Set-NetAdapterRss -BaseProcessorNumber {base_proc} -MaxProcessors {num_queues} -NumberOfReceiveQueues {num_queues} -Profile Closest -ErrorAction SilentlyContinue"
                     subprocess.run(["powershell", "-NoProfile", "-Command", rss_cmd], capture_output=True)
 
             self.log(self.t("log_dev_saved", name=dev_card.dev_info['FriendlyName'], msi=msi, prio=prio_str, mask=mask_val))
@@ -913,7 +952,8 @@ class W11LatencyFixerApp(ctk.CTk):
             pr = p_map.get(d.cmb_prio.get(), 3)
             mask_hex = f"0x{d.grid.get_mask():04X}"
             is_gpu = 1 if d.dev_category == 'GPU' else 0
-            dev_cmds.append(f'Set-SafeReg "{p}" {m} {pr} "{mask_hex}" {is_gpu}')
+            is_net = 1 if d.dev_category == 'NET' else 0
+            dev_cmds.append(f'Set-SafeReg "{p}" {m} {pr} "{mask_hex}" {is_gpu} {is_net}')
 
         for n in self.net_cards:
             mask_val = n.grid.get_mask()
@@ -922,7 +962,8 @@ class W11LatencyFixerApp(ctk.CTk):
                 if cores:
                     base_proc = min(cores)
                     max_procs = len(cores)
-                    dev_cmds.append(f"Get-NetAdapter -InterfaceDescription '*{n.dev_info['FriendlyName']}*' -ErrorAction SilentlyContinue | Set-NetAdapterRss -BaseProcessorNumber {base_proc} -MaxProcessors {max_procs} -NumberOfReceiveQueues {max_procs} -Profile Closest -ErrorAction SilentlyContinue")
+                    num_queues = 4 if max_procs >= 4 else (2 if max_procs >= 2 else 1)
+                    dev_cmds.append(f"Get-NetAdapter -InterfaceDescription '*{n.dev_info['FriendlyName']}*' -ErrorAction SilentlyContinue | Set-NetAdapterRss -BaseProcessorNumber {base_proc} -MaxProcessors {num_queues} -NumberOfReceiveQueues {num_queues} -Profile Closest -ErrorAction SilentlyContinue")
 
         proc_cmds = []
         for r in self.proc_cards:
@@ -933,7 +974,7 @@ class W11LatencyFixerApp(ctk.CTk):
                 proc_cmds.append(f"Get-Process -Name '{p_clean}' -ErrorAction SilentlyContinue | ForEach-Object {{ $_.ProcessorAffinity = [IntPtr][Convert]::ToInt64('{mask_hex}', 16); $_.PriorityClass = '{r.cmb_prio.get()}' }}")
 
         ps_code = f"""
-function Set-SafeReg($p, $m, $pr, $hex, $isGpu) {{
+function Set-SafeReg($p, $m, $pr, $hex, $isGpu, $isNet) {{
     if (Test-Path $p) {{
         $mp = Join-Path $p "Device Parameters\\Interrupt Management\\MessageSignaledInterruptProperties"
         $ap = Join-Path $p "Device Parameters\\Interrupt Management\\Affinity Policy"
@@ -942,11 +983,18 @@ function Set-SafeReg($p, $m, $pr, $hex, $isGpu) {{
         Set-ItemProperty $mp -Name "MSISupported" -Value $m -Type DWord
         if ($isGpu -eq 1) {{ Set-ItemProperty $mp -Name "MessageNumberLimit" -Value 1 -Type DWord }}
         Set-ItemProperty $ap -Name "DevicePriority" -Value $pr -Type DWord
-        $maskVal = [Convert]::ToUInt64($hex, 16)
-        if ($maskVal -gt 0) {{
-            Set-ItemProperty $ap -Name "DevicePolicy" -Value 4 -Type DWord
-            $b = [BitConverter]::GetBytes($maskVal)
-            Set-ItemProperty $ap -Name "AssignmentSetOverride" -Value $b -Type Binary
+        
+        # Для сети блокируем запись AssignmentSetOverride, чтобы исключить Code 10
+        if ($isNet -eq 0) {{
+            $maskVal = [Convert]::ToUInt64($hex, 16)
+            if ($maskVal -gt 0) {{
+                Set-ItemProperty $ap -Name "DevicePolicy" -Value 4 -Type DWord
+                $b = [BitConverter]::GetBytes($maskVal)
+                Set-ItemProperty $ap -Name "AssignmentSetOverride" -Value $b -Type Binary
+            }} else {{
+                Set-ItemProperty $ap -Name "DevicePolicy" -Value 0 -Type DWord
+                Remove-ItemProperty $ap -Name "AssignmentSetOverride" -ErrorAction SilentlyContinue
+            }}
         }} else {{
             Set-ItemProperty $ap -Name "DevicePolicy" -Value 0 -Type DWord
             Remove-ItemProperty $ap -Name "AssignmentSetOverride" -ErrorAction SilentlyContinue
