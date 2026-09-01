@@ -19,7 +19,7 @@ USB-мыши) на самое первое ядро процессора — Cor
 Цель W11LatencyFixer — в автоматическом или ручном режиме безопасно разнести
 очереди прерываний ключевых контроллеров по разным физическим ядрам процессора,
 перевести шину в режим MSI (Message Signaled Interrupts) и снизить системные
-DPC-задержки до рекордных < 150\ \mu\text{s}, освободив первые ядра
+DPC-задержки до рекордных < 150 нс, освободив первые ядра
 исключительно под нужды игрового движка.
 
 ⚙️ Как это устроено и работает под капотом
@@ -98,7 +98,7 @@ underruns (xruns/clicks).
 
 The goal of W11LatencyFixer is to safely distribute hardware interrupts across
 dedicated physical CPU cores, enforce high-priority Message Signaled Interrupts
-(MSI/MSI-X), and achieve sub-150\ \mu\text{s} DPC latencies while keeping
+(MSI/MSI-X), and achieve 150 ns DPC latencies while keeping
 primary CPU cores 100% clean for game rendering loops.
 
 ⚙️ How It Works (Under the Hood)
