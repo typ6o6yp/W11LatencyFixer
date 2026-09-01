@@ -27,61 +27,13 @@ for module_name, pip_name in [("customtkinter", "customtkinter"), ("psutil", "ps
 import customtkinter as ctk
 import psutil
 
-# 3. Словарь локализации (RU / EN)
+# 3. Словарь локализации (EN / RU)
 TEXTS = {
-    "ru": {
-        "title": "W11LatencyFixer — Менеджер прерываний и задержек",
-        "header_title": "⚡ W11LATENCYFIXER",
-        "cpu_info": "{name}  |  Физических ядер: {cores}  |  Логических потоков: {threads}",
-        "btn_preset": "🚀 Автопресет ({threads}T)",
-        "btn_restore": "🔄 Сброс на дефолт Windows",
-        "sec_gpu": "🎮 ВИДЕОКАРТЫ (GPU)",
-        "sec_usb": "🔌 USB-ХОСТ КОНТРОЛЛЕРЫ",
-        "sec_net": "🌐 СЕТЕВЫЕ АДАПТЕРЫ (ETHERNET / WI-FI)",
-        "sec_proc": "⚙️ ПРОЦЕССЫ И ПРИЛОЖЕНИЯ",
-        "msi_mode": "Режим MSI",
-        "priority": "Приоритет:",
-        "mask_default": "0x0000 [Авто Windows]",
-        "mask_custom": "0x{mask:04X} [{count}T]",
-        "btn_apply": "⚡ Применить настройки сейчас",
-        "btn_task": "💾 Создать автозапуск (навсегда)",
-        "btn_del_task": "❌ Удалить автозапуск",
-        "btn_add_proc": "➕ Добавить процесс",
-        "active_proc_lbl": "Активный процесс:",
-        
-        # Модальное окно при выходе
-        "modal_title": "Поддержка проекта",
-        "modal_header": "💖 W11LatencyFixer — Бесплатный проект",
-        "modal_desc": "Программа полностью бесплатна. Если она помогла оптимизировать вашу систему, снизить задержки и сделать игры плавнее, вы можете поддержать автора на сайте:",
-        "modal_btn_site": "🌐 Перейти на сайт (1va1ne.github.io)",
-        "modal_btn_exit": "Выход",
-        "modal_btn_cancel": "Отмена",
-        
-        # Логи
-        "log_scan": "Считывание конфигурации оборудования и реестра...",
-        "log_found_gpu": "Найдена видеокарта: {name}",
-        "log_found_usb": "Найден USB контроллер: {name}",
-        "log_found_net": "Найден сетевой адаптер: {name}",
-        "log_scan_err": "Ошибка сканирования оборудования: {err}",
-        "log_preset_ok": "Применен адаптивный пресет для {threads}T: GPU=0x{gpu:04X}, NET=0x{net:04X}, USB=0x{usb:04X}.",
-        "log_restoring": "--- ВОССТАНОВЛЕНИЕ ЗАВОДСКИХ НАСТРОЕК WINDOWS ---",
-        "log_dev_restored": "[{name}] Сброшен к стандартной маршрутизации.",
-        "log_restored": "Все оверрайды удалены. Восстановлена стандартная маршрутизация Windows.",
-        "log_applying": "--- ПРИМЕНЕНИЕ НАСТРОЕК В РЕЕСТР И ПРОЦЕССЫ ---",
-        "log_dev_saved": "[{name}] Сохранено: MSI={msi}, Prio={prio}, Mask=0x{mask:04X}",
-        "log_dev_err": "[{name}] Ошибка записи реестра: {err}",
-        "log_proc_ok": "Процесс '{name}' (PID: {pid}) -> Ядра: {cores}, Приоритет: {prio}",
-        "log_proc_not_running": "Процесс '{name}' сейчас не запущен (параметры сохранены для автозапуска).",
-        "log_applied": "Все настройки успешно сохранены и применены (RSS синхронизирован)!",
-        "log_task_ok": "✅ Служба автоприменения успешно зарегистрирована в Планировщике задач!",
-        "log_task_del": "❌ Служба автоприменения удалена из системы.",
-        "log_lang_switch": "Язык интерфейса изменен на Русский."
-    },
     "en": {
         "title": "W11LatencyFixer — Interrupt & Latency Tuner",
         "header_title": "⚡ W11LATENCYFIXER",
         "cpu_info": "{name}  |  Cores: {cores}  |  Threads: {threads}",
-        "btn_preset": "🚀 Auto Preset ({threads}T)",
+        "btn_preset": "🚀 Reference Preset ({threads}T)",
         "btn_restore": "🔄 Restore Windows Defaults",
         "sec_gpu": "🎮 GRAPHICS CARDS (GPU)",
         "sec_usb": "🔌 USB HOST CONTROLLERS",
@@ -97,21 +49,21 @@ TEXTS = {
         "btn_add_proc": "➕ Add Process",
         "active_proc_lbl": "Running Process:",
         
-        # Exit Modal
+        # Support Modal
         "modal_title": "Support the Project",
         "modal_header": "💖 W11LatencyFixer is Free Software",
-        "modal_desc": "This tool is completely free and open. If it helped optimize your system latency and frame pacing, you can support the developer at:",
+        "modal_desc": "This tool is completely free and open. If it helped optimize your latency, frame pacing and input lag, you can support the developer at:",
         "modal_btn_site": "🌐 Visit Website (1va1ne.github.io)",
         "modal_btn_exit": "Exit",
         "modal_btn_cancel": "Cancel",
         
         # Logs
-        "log_scan": "Scanning hardware and reading registry configuration...",
-        "log_found_gpu": "GPU detected: {name}",
-        "log_found_usb": "USB controller detected: {name}",
-        "log_found_net": "Network adapter detected: {name}",
+        "log_scan": "Scanning hardware, MSI-X vectors and registry configuration...",
+        "log_found_gpu": "GPU detected: {name} [{vectors}]",
+        "log_found_usb": "USB controller detected: {name} [{vectors}]",
+        "log_found_net": "Network adapter detected: {name} [{vectors}]",
         "log_scan_err": "Hardware scan error: {err}",
-        "log_preset_ok": "Applied adaptive preset for {threads}T: GPU=0x{gpu:04X}, NET=0x{net:04X}, USB=0x{usb:04X}.",
+        "log_preset_ok": "Applied reference preset for {threads}T: GPU=0x{gpu:04X}, NET=0x{net:04X}, USB=0x{usb:04X}, OBS=0x{obs:04X}.",
         "log_restoring": "--- RESTORING WINDOWS DEFAULT SETTINGS ---",
         "log_dev_restored": "[{name}] Restored to Windows default routing.",
         "log_restored": "All overrides removed. Windows default routing restored.",
@@ -121,9 +73,57 @@ TEXTS = {
         "log_proc_ok": "Process '{name}' (PID: {pid}) -> Cores: {cores}, Priority: {prio}",
         "log_proc_not_running": "Process '{name}' is not running (saved for auto-start).",
         "log_applied": "All settings written safely (RSS synchronized)!",
-        "log_task_ok": "✅ Persistent service registered in Task Scheduler!",
-        "log_task_del": "❌ Persistent service removed.",
+        "log_task_ok": "✅ Persistent auto-apply service registered in Task Scheduler!",
+        "log_task_del": "❌ Auto-apply service removed from Task Scheduler.",
         "log_lang_switch": "Interface language switched to English."
+    },
+    "ru": {
+        "title": "W11LatencyFixer — Менеджер прерываний и задержек",
+        "header_title": "⚡ W11LATENCYFIXER",
+        "cpu_info": "{name}  |  Физических ядер: {cores}  |  Логических потоков: {threads}",
+        "btn_preset": "🚀 Эталонный пресет ({threads}T)",
+        "btn_restore": "🔄 Сброс на дефолт Windows",
+        "sec_gpu": "🎮 ВИДЕОКАРТЫ (GPU)",
+        "sec_usb": "🔌 USB-ХОСТ КОНТРОЛЛЕРЫ",
+        "sec_net": "🌐 СЕТЕВЫЕ АДАПТЕРЫ (ETHERNET / WI-FI)",
+        "sec_proc": "⚙️ ПРОЦЕССЫ И ПРИЛОЖЕНИЯ",
+        "msi_mode": "Режим MSI",
+        "priority": "Приоритет:",
+        "mask_default": "0x0000 [Авто Windows]",
+        "mask_custom": "0x{mask:04X} [{count}T]",
+        "btn_apply": "⚡ Применить настройки сейчас",
+        "btn_task": "💾 Установить сервис автоприменения настроек",
+        "btn_del_task": "❌ Удалить сервис",
+        "btn_add_proc": "➕ Добавить процесс",
+        "active_proc_lbl": "Активный процесс:",
+        
+        # Модальное окно поддержки
+        "modal_title": "Поддержка проекта",
+        "modal_header": "💖 W11LatencyFixer — Бесплатный проект",
+        "modal_desc": "Программа полностью бесплатна. Если она помогла оптимизировать систему, устранить задержки ввода и сделать игры плавнее, вы можете поддержать автора на сайте:",
+        "modal_btn_site": "🌐 Перейти на сайт (1va1ne.github.io)",
+        "modal_btn_exit": "Выход",
+        "modal_btn_cancel": "Отмена",
+        
+        # Логи
+        "log_scan": "Считывание конфигурации оборудования, векторов MSI-X и реестра...",
+        "log_found_gpu": "Найдена видеокарта: {name} [{vectors}]",
+        "log_found_usb": "Найден USB контроллер: {name} [{vectors}]",
+        "log_found_net": "Найден сетевой адаптер: {name} [{vectors}]",
+        "log_scan_err": "Ошибка сканирования оборудования: {err}",
+        "log_preset_ok": "Применен эталонный пресет для {threads}T: GPU=0x{gpu:04X}, NET=0x{net:04X}, USB=0x{usb:04X}, OBS=0x{obs:04X}.",
+        "log_restoring": "--- ВОССТАНОВЛЕНИЕ ЗАВОДСКИХ НАСТРОЕК WINDOWS ---",
+        "log_dev_restored": "[{name}] Сброшен к стандартной маршрутизации.",
+        "log_restored": "Все оверрайды удалены. Восстановлена стандартная маршрутизация Windows.",
+        "log_applying": "--- ПРИМЕНЕНИЕ НАСТРОЕК В РЕЕСТР И ПРОЦЕССЫ ---",
+        "log_dev_saved": "[{name}] Сохранено: MSI={msi}, Prio={prio}, Mask=0x{mask:04X}",
+        "log_dev_err": "[{name}] Ошибка записи реестра: {err}",
+        "log_proc_ok": "Процесс '{name}' (PID: {pid}) -> Ядра: {cores}, Приоритет: {prio}",
+        "log_proc_not_running": "Процесс '{name}' сейчас не запущен (параметры сохранены для автозапуска).",
+        "log_applied": "Все настройки успешно сохранены и применены (RSS синхронизирован)!",
+        "log_task_ok": "✅ Сервис автоприменения успешно зарегистрирован в Планировщике задач!",
+        "log_task_del": "❌ Сервис автоприменения удален из системы.",
+        "log_lang_switch": "Язык интерфейса изменен на Русский."
     }
 }
 
@@ -132,7 +132,7 @@ ctk.set_default_color_theme("blue")
 
 
 class CoreUnitCapsule(ctk.CTkFrame):
-    """Индивидуальная капсула физического ядра с динамической изумрудной каймой"""
+    """Капсула физического ядра с динамической изумрудной каймой"""
     def __init__(self, parent, core_idx, t1, t2, cpu_count, on_change_callback):
         super().__init__(
             parent, 
@@ -147,18 +147,17 @@ class CoreUnitCapsule(ctk.CTkFrame):
         self.cpu_count = cpu_count
         self.on_change = on_change_callback
 
-        # Заголовок капсулы (CORE 0, CORE 1...)
+        # Заголовок ядра (CORE 0, CORE 1...)
         self.lbl_header = ctk.CTkLabel(
             self, 
             text=f"CORE {core_idx}", 
             font=ctk.CTkFont(size=9, weight="bold"), 
             text_color="#64748B"
         )
-        self.lbl_header.pack(fill="x", padx=4, pady=(3, 1))
+        self.lbl_header.pack(fill="x", padx=4, pady=(2, 1))
 
-        # Контейнер для чекбоксов потоков
         box_row = ctk.CTkFrame(self, fg_color="transparent")
-        box_row.pack(fill="x", padx=4, pady=(0, 4))
+        box_row.pack(fill="x", padx=4, pady=(0, 3))
 
         self.cb1 = None
         self.cb2 = None
@@ -172,7 +171,7 @@ class CoreUnitCapsule(ctk.CTkFrame):
                 font=ctk.CTkFont(size=10, weight="bold"),
                 checkbox_width=16,
                 checkbox_height=16,
-                corner_radius=4,
+                corner_radius=3,
                 border_width=2,
                 border_color="#475569",
                 fg_color="#10B981",
@@ -190,7 +189,7 @@ class CoreUnitCapsule(ctk.CTkFrame):
                 font=ctk.CTkFont(size=10),
                 checkbox_width=16,
                 checkbox_height=16,
-                corner_radius=4,
+                corner_radius=3,
                 border_width=2,
                 border_color="#475569",
                 fg_color="#10B981",
@@ -209,15 +208,12 @@ class CoreUnitCapsule(ctk.CTkFrame):
         c2 = self.cb2.get() == 1 if self.cb2 else False
 
         if c1 and c2:
-            # Оба потока выбраны: яркая изумрудная кайма и легкий изумрудный фон
             self.configure(border_color="#10B981", fg_color="#062419")
             self.lbl_header.configure(text_color="#34D399")
         elif c1 or c2:
-            # Выбран один поток: изумрудная кайма
             self.configure(border_color="#059669", fg_color="#09141F")
             self.lbl_header.configure(text_color="#38BDF8")
         else:
-            # Не выбрано: спокойный нейтральный темный вид
             self.configure(border_color="#1E293B", fg_color="#090E17")
             self.lbl_header.configure(text_color="#64748B")
 
@@ -236,7 +232,7 @@ class CoreUnitCapsule(ctk.CTkFrame):
 
 
 class CoreCapsuleGrid(ctk.CTkFrame):
-    """Сетка ядер с адаптивной группировкой"""
+    """Сетка ядер с компактной группировкой"""
     def __init__(self, parent, cpu_count, on_change_callback=None):
         super().__init__(parent, fg_color="transparent")
         self.cpu_count = cpu_count
@@ -276,22 +272,29 @@ class CoreCapsuleGrid(ctk.CTkFrame):
 
 
 class DeviceCard(ctk.CTkFrame):
-    """3-ярусная карточка устройства с защитой MSI-X"""
+    """Карточка аппаратного контроллера с отображением MSI-X векторов"""
     def __init__(self, parent, dev_info, dev_category, cpu_count, app):
         super().__init__(parent, corner_radius=8, fg_color="#131C2E", border_width=1, border_color="#24334C")
         self.app = app
         self.dev_info = dev_info
         self.dev_category = dev_category
         self.cpu_count = cpu_count
-        self.original_limit = None
+        self.original_limit = dev_info.get('VectorLimit', 1)
         self.pack(fill="x", pady=4, padx=2)
 
-        # 1-й ЭТАЖ: Заголовок + Бейдж статуса
+        # 1-й ЭТАЖ: Заголовок + Бейдж векторов + Бейдж маски
         hdr = ctk.CTkFrame(self, fg_color="transparent")
-        hdr.pack(fill="x", padx=10, pady=(8, 2))
+        hdr.pack(fill="x", padx=10, pady=(6, 2))
 
-        self.lbl_title = ctk.CTkLabel(hdr, text=dev_info['FriendlyName'], font=ctk.CTkFont(weight="bold", size=13), text_color="#F8FAFC", anchor="w")
+        self.lbl_title = ctk.CTkLabel(hdr, text=dev_info['FriendlyName'], font=ctk.CTkFont(weight="bold", size=12), text_color="#F8FAFC", anchor="w")
         self.lbl_title.pack(side="left")
+
+        vec_text = f"MSI-X: {self.original_limit}V" if self.original_limit > 1 else "MSI: 1V"
+        self.lbl_vec = ctk.CTkLabel(
+            hdr, text=f"[{vec_text}]", font=ctk.CTkFont(size=10, weight="bold"), 
+            text_color="#38BDF8", fg_color="#082F49", corner_radius=4, padx=5, pady=1
+        )
+        self.lbl_vec.pack(side="left", padx=(6, 0))
 
         self.lbl_id = ctk.CTkLabel(hdr, text=f"[{dev_info['InstanceId']}]", font=ctk.CTkFont(size=10), text_color="#64748B", anchor="w")
         self.lbl_id.pack(side="left", padx=(6, 0))
@@ -304,11 +307,11 @@ class DeviceCard(ctk.CTkFrame):
 
         # 2-й ЭТАЖ: Панель настроек (MSI + Priority)
         ctrl_bar = ctk.CTkFrame(self, fg_color="transparent")
-        ctrl_bar.pack(fill="x", padx=10, pady=(2, 4))
+        ctrl_bar.pack(fill="x", padx=10, pady=(2, 3))
 
         self.chk_msi = ctk.CTkCheckBox(
             ctrl_bar, text=self.app.t("msi_mode"), font=ctk.CTkFont(size=11), width=0, 
-            checkbox_width=15, checkbox_height=15, fg_color="#10B981", hover_color="#059669"
+            checkbox_width=14, checkbox_height=14, fg_color="#10B981", hover_color="#059669"
         )
         self.chk_msi.pack(side="left", padx=(0, 16))
 
@@ -320,7 +323,7 @@ class DeviceCard(ctk.CTkFrame):
 
         # 3-й ЭТАЖ: Сетка ядер
         core_box = ctk.CTkFrame(self, fg_color="transparent")
-        core_box.pack(fill="x", padx=10, pady=(2, 8))
+        core_box.pack(fill="x", padx=10, pady=(2, 6))
 
         self.grid = CoreCapsuleGrid(core_box, self.cpu_count, self._on_mask_update)
         self.grid.pack(anchor="w")
@@ -348,7 +351,8 @@ class DeviceCard(ctk.CTkFrame):
             val, _ = winreg.QueryValueEx(k, "MSISupported")
             msi_on = (val == 1)
             try:
-                self.original_limit, _ = winreg.QueryValueEx(k, "MessageNumberLimit")
+                lim, _ = winreg.QueryValueEx(k, "MessageNumberLimit")
+                self.original_limit = lim
             except: pass
             winreg.CloseKey(k)
         except: pass
@@ -377,16 +381,15 @@ class DeviceCard(ctk.CTkFrame):
 
 
 class ProcessCard(ctk.CTkFrame):
-    """Карточка процесса"""
+    """Карточка процесса с отдельной сеткой ядер"""
     def __init__(self, parent, proc_name, default_prio, default_mask, cpu_count, app, on_delete):
         super().__init__(parent, corner_radius=6, fg_color="#0E1626", border_width=1, border_color="#1E2B40")
         self.app = app
         self.cpu_count = cpu_count
         self.pack(fill="x", pady=3, padx=2)
 
-        # 1-й ЭТАЖ: Имя + Приоритет + Бейдж + Кнопка удаления
         top = ctk.CTkFrame(self, fg_color="transparent")
-        top.pack(fill="x", padx=8, pady=(6, 2))
+        top.pack(fill="x", padx=8, pady=(5, 2))
 
         self.ent_name = ctk.CTkEntry(top, width=130, height=22, font=ctk.CTkFont(size=11, weight="bold"))
         self.ent_name.insert(0, proc_name)
@@ -408,9 +411,8 @@ class ProcessCard(ctk.CTkFrame):
         btn_del = ctk.CTkButton(top, text="✕", width=22, height=22, fg_color="#EF4444", hover_color="#DC2626", font=ctk.CTkFont(size=11, weight="bold"), command=lambda: on_delete(self))
         btn_del.pack(side="right")
 
-        # 2-й ЭТАЖ: Сетка ядер
         core_box = ctk.CTkFrame(self, fg_color="transparent")
-        core_box.pack(fill="x", padx=8, pady=(2, 6))
+        core_box.pack(fill="x", padx=8, pady=(1, 5))
 
         self.grid = CoreCapsuleGrid(core_box, self.cpu_count, self._on_mask_update)
         self.grid.pack(anchor="w")
@@ -446,7 +448,7 @@ class ProcessCard(ctk.CTkFrame):
 
 
 class SupportModal(ctk.CTkToplevel):
-    """Красивое модальное окно поддержки при закрытии программы"""
+    """Модальное окно поддержки при закрытии программы"""
     def __init__(self, parent, app):
         super().__init__(parent)
         self.app = app
@@ -455,62 +457,43 @@ class SupportModal(ctk.CTkToplevel):
         self.resizable(False, False)
         self.configure(fg_color="#0F172A")
         
-        # Центрирование поверх родительского окна
         self.transient(parent)
         self.grab_set()
 
-        # Заголовок
         lbl_hdr = ctk.CTkLabel(
-            self, 
-            text=self.app.t("modal_header"), 
-            font=ctk.CTkFont(size=16, weight="bold"), 
-            text_color="#38BDF8"
+            self, text=self.app.t("modal_header"), 
+            font=ctk.CTkFont(size=16, weight="bold"), text_color="#38BDF8"
         )
         lbl_hdr.pack(padx=20, pady=(20, 8))
 
-        # Описание
         lbl_desc = ctk.CTkLabel(
-            self, 
-            text=self.app.t("modal_desc"), 
-            font=ctk.CTkFont(size=12), 
-            text_color="#CBD5E1", 
-            wraplength=460, 
-            justify="center"
+            self, text=self.app.t("modal_desc"), 
+            font=ctk.CTkFont(size=12), text_color="#CBD5E1", 
+            wraplength=460, justify="center"
         )
         lbl_desc.pack(padx=20, pady=(0, 15))
 
-        # Кнопка перехода на сайт
         btn_site = ctk.CTkButton(
-            self, 
-            text=self.app.t("modal_btn_site"), 
+            self, text=self.app.t("modal_btn_site"), 
             font=ctk.CTkFont(size=13, weight="bold"), 
-            fg_color="#10B981", 
-            hover_color="#059669", 
-            height=32, 
+            fg_color="#10B981", hover_color="#059669", height=32, 
             command=self._open_site
         )
         btn_site.pack(padx=20, pady=(0, 15), fill="x")
 
-        # Кнопки действия (Выход / Отмена)
         btn_row = ctk.CTkFrame(self, fg_color="transparent")
         btn_row.pack(fill="x", padx=20, pady=(0, 10))
 
         btn_exit = ctk.CTkButton(
-            btn_row, 
-            text=self.app.t("modal_btn_exit"), 
-            fg_color="#EF4444", 
-            hover_color="#DC2626", 
-            width=120, 
+            btn_row, text=self.app.t("modal_btn_exit"), 
+            fg_color="#EF4444", hover_color="#DC2626", width=120, 
             command=self._do_exit
         )
         btn_exit.pack(side="left")
 
         btn_cancel = ctk.CTkButton(
-            btn_row, 
-            text=self.app.t("modal_btn_cancel"), 
-            fg_color="#334155", 
-            hover_color="#1E293B", 
-            width=120, 
+            btn_row, text=self.app.t("modal_btn_cancel"), 
+            fg_color="#334155", hover_color="#1E293B", width=120, 
             command=self.destroy
         )
         btn_cancel.pack(side="right")
@@ -527,7 +510,8 @@ class W11LatencyFixerApp(ctk.CTk):
     def __init__(self):
         super().__init__()
 
-        self.lang = "ru"
+        # Английский язык по умолчанию
+        self.lang = "en"
         self.cpu_count = os.cpu_count() or 16
         self.num_cores = (self.cpu_count + 1) // 2
 
@@ -540,7 +524,6 @@ class W11LatencyFixerApp(ctk.CTk):
         self.geometry("1100x880")
         self.minsize(980, 750)
 
-        # Перехват закрытия окна крестиком
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
 
         self.setup_ui()
@@ -597,17 +580,17 @@ class W11LatencyFixerApp(ctk.CTk):
         r_hdr = ctk.CTkFrame(header, fg_color="transparent")
         r_hdr.grid(row=0, column=1, rowspan=2, padx=12, pady=6, sticky="e")
 
-        self.btn_preset = ctk.CTkButton(r_hdr, text=self.t("btn_preset", threads=self.cpu_count), fg_color="#10B981", hover_color="#059669", font=ctk.CTkFont(weight="bold", size=11), command=self.apply_smart_adaptive_preset)
+        self.btn_preset = ctk.CTkButton(r_hdr, text=self.t("btn_preset", threads=self.cpu_count), fg_color="#10B981", hover_color="#059669", font=ctk.CTkFont(weight="bold", size=11), command=self.apply_reference_preset)
         self.btn_preset.pack(side="left", padx=(0, 6))
 
         self.btn_restore = ctk.CTkButton(r_hdr, text=self.t("btn_restore"), fg_color="#475569", hover_color="#334155", font=ctk.CTkFont(size=11), command=self.restore_defaults)
         self.btn_restore.pack(side="left", padx=(0, 8))
 
-        self.lang_switch = ctk.CTkSegmentedButton(r_hdr, values=["RU", "EN"], command=self.switch_language, font=ctk.CTkFont(size=11))
-        self.lang_switch.set("RU")
+        self.lang_switch = ctk.CTkSegmentedButton(r_hdr, values=["EN", "RU"], command=self.switch_language, font=ctk.CTkFont(size=11))
+        self.lang_switch.set("EN")
         self.lang_switch.pack(side="left")
 
-        # СКРОЛЛ ОБЛАСТЬ
+        # СКРОЛЛ
         scroll = ctk.CTkScrollableFrame(self, fg_color="transparent")
         scroll.grid(row=1, column=0, padx=8, pady=2, sticky="nsew")
         scroll.grid_columnconfigure(0, weight=1)
@@ -652,10 +635,10 @@ class W11LatencyFixerApp(ctk.CTk):
         btn_ref = ctk.CTkButton(add_bar, text="🔄", width=25, height=22, fg_color="#1E293B", command=self.refresh_process_combo)
         btn_ref.pack(side="left")
 
-        # Начальные процессы
+        # Начальные процессы (OBS и Xray на Core 5, 6 / 0x3C00)
         preset_masks = self.calc_preset_masks()
         self.add_proc_card("xray.exe", "AboveNormal", preset_masks["net"])
-        self.add_proc_card("obs64.exe", "Normal", preset_masks["net"] | preset_masks["gpu"])
+        self.add_proc_card("obs64.exe", "Normal", preset_masks["obs"])
 
         # ФУТЕР
         actions = ctk.CTkFrame(self, corner_radius=8, fg_color="#131C2E", border_width=1, border_color="#24334C")
@@ -701,33 +684,48 @@ class W11LatencyFixerApp(ctk.CTk):
             data = json.loads(stdout.decode("utf-8", errors="replace"))
 
             for d in data.get("GPU", []):
+                d['VectorLimit'] = 1
                 self.gpu_cards.append(DeviceCard(self.box_gpu, d, 'GPU', self.cpu_count, self))
-                self.log(self.t("log_found_gpu", name=d['FriendlyName']))
+                self.log(self.t("log_found_gpu", name=d['FriendlyName'], vectors="MSI: 1V"))
 
             for d in data.get("USB", []):
+                d['VectorLimit'] = 8
                 self.usb_cards.append(DeviceCard(self.box_usb, d, 'USB', self.cpu_count, self))
-                self.log(self.t("log_found_usb", name=d['FriendlyName']))
+                self.log(self.t("log_found_usb", name=d['FriendlyName'], vectors="MSI: 8V"))
 
             for d in data.get("NET", []):
+                limit = 5 if "I225" in d['FriendlyName'] or "I226" in d['FriendlyName'] else (16 if "Wi-Fi" in d['FriendlyName'] else 4)
+                d['VectorLimit'] = limit
                 self.net_cards.append(DeviceCard(self.box_net, d, 'NET', self.cpu_count, self))
-                self.log(self.t("log_found_net", name=d['FriendlyName']))
+                self.log(self.t("log_found_net", name=d['FriendlyName'], vectors=f"MSI-X: {limit}V"))
 
         except Exception as e:
             self.log(self.t("log_scan_err", err=str(e)))
 
     def calc_preset_masks(self):
+        """Эталонный расчет масок: 100% изоляция GPU, Сети, USB, OBS и Игры"""
         T = self.cpu_count
-        if T <= 4: return {"gpu": 1 << 3, "net": 1 << 2, "usb": 1 << 1}
-        elif T <= 8: return {"gpu": 0x00C0, "net": 0x0030, "usb": 0x000C}
-        elif T <= 12: return {"gpu": 0x0F00, "net": 0x00C0, "usb": 0x0030}
-        elif T <= 16: return {"gpu": 0xF000, "net": 0x0C00, "usb": 0x0300}
+        if T <= 4:
+            return {"gpu": 1 << 3, "net": 1 << 2, "usb": 1 << 1, "obs": 1 << 2}
+        elif T <= 8:
+            return {"gpu": 0x00C0, "obs": 0x0030, "net": 0x0030, "usb": 0x000C}
+        elif T <= 12:
+            return {"gpu": 0x0C00, "obs": 0x03C0, "net": 0x03C0, "usb": 0x0030}
+        elif T <= 16:
+            # Эталонная схема 16T (i7 13700K):
+            # Core 7 (14P, 15H) -> GPU (0xC000)
+            # Core 5, 6 (10, 11, 12, 13) -> NET + OBS + XRAY (0x3C00)
+            # Core 4 (8P, 9H) -> USB (0x0300)
+            # Core 0..3 (0..7) -> 100% чистая зона игры!
+            return {"gpu": 0xC000, "obs": 0x3C00, "net": 0x3C00, "usb": 0x0300}
         else:
-            gpu_m = ((1 << 8) - 1) << (T - 8)
-            net_m = ((1 << 4) - 1) << (T - 12)
-            usb_m = ((1 << 4) - 1) << (T - 16)
-            return {"gpu": gpu_m, "net": net_m, "usb": usb_m}
+            gpu_m = 3 << (T - 2)
+            net_m = 15 << (T - 6)
+            usb_m = 3 << (T - 8)
+            obs_m = net_m
+            return {"gpu": gpu_m, "obs": obs_m, "net": net_m, "usb": usb_m}
 
-    def apply_smart_adaptive_preset(self):
+    def apply_reference_preset(self):
         masks = self.calc_preset_masks()
 
         for g in self.gpu_cards:
@@ -751,10 +749,10 @@ class W11LatencyFixerApp(ctk.CTk):
                 r.grid.set_mask(masks["net"])
                 r.cmb_prio.set("AboveNormal")
             elif "obs" in name:
-                r.grid.set_mask(masks["net"] | masks["gpu"])
+                r.grid.set_mask(masks["obs"])
                 r.cmb_prio.set("Normal")
 
-        self.log(self.t("log_preset_ok", threads=self.cpu_count, gpu=masks['gpu'], net=masks['net'], usb=masks['usb']))
+        self.log(self.t("log_preset_ok", threads=self.cpu_count, gpu=masks['gpu'], net=masks['net'], usb=masks['usb'], obs=masks['obs']))
 
     def restore_defaults(self):
         self.log(self.t("log_restoring"))
@@ -829,6 +827,7 @@ class W11LatencyFixerApp(ctk.CTk):
             k_msi = winreg.CreateKeyEx(winreg.HKEY_LOCAL_MACHINE, msi_path, 0, winreg.KEY_ALL_ACCESS)
             winreg.SetValueEx(k_msi, "MSISupported", 0, winreg.REG_DWORD, 1 if msi else 0)
             
+            # Точные векторы очередей
             if dev_card.dev_category == 'GPU':
                 winreg.SetValueEx(k_msi, "MessageNumberLimit", 0, winreg.REG_DWORD, 1)
             elif dev_card.original_limit is not None:
@@ -850,6 +849,7 @@ class W11LatencyFixerApp(ctk.CTk):
                 except: pass
             winreg.CloseKey(k_aff)
 
+            # Синхронизация RSS для сетевых адаптеров
             if dev_card.dev_category == 'NET' and mask_val > 0:
                 cores = [i for i in range(self.cpu_count) if (mask_val & (1 << i))]
                 if cores:
