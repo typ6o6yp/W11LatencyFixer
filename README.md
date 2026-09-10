@@ -1,213 +1,199 @@
 <img width="1374" height="1139" alt="Снимок экрана 2026-09-01 161854" src="https://github.com/user-attachments/assets/ca6777f6-1627-40b8-9088-ec2743f769c4" />
 
-🇷🇺 Русский вариант (README.md)
+What is this program?
 
-⚡ W11LatencyFixer
+W11LatencyFixer Pro is an advanced, low-level Windows 11/10 latency engine
+designed for competitive gamers and power users. Its primary purpose is to
+eliminate micro-stutters, minimize input lag, and flatten frametime variance by
+reorganizing how the operating system handles CPU cores and hardware interrupts.
 
-Низкоуровневый оптимизатор системных задержек, DPC/ISR прерываний и
-распределения потоков для Windows 11 / 10.
+The Problem It Solves
 
-🎯 Назначение и цель проекта
+By default, Windows does not isolate critical game threads from system hardware:
 
-По умолчанию операционная система Windows сбрасывает практически все аппаратные
-прерывания периферийных устройств (видеокарты, сетевой карты, контроллера
-USB-мыши) на самое первое ядро процессора — Core 0 (CPU 0). Когда на систему
-ложится нагрузка в играх, при стриминге или работе со звуком, планировщик ядра
-ОС на Core 0 захлебывается, вызывая микрофризы (stutters), плавающий Input Lag
-мыши, скачки 0.1% Low FPS и треск звука (audio dropouts/xruns).
+1.  Interrupt Storms & DPC Latency: Whenever your high-polling gaming mouse
+    moves (1000–8000 Hz), your network card receives packets, or your GPU
+    completes a frame, they generate hardware interrupts (IRQs). Windows often
+    dumps these interrupts onto CPU Core 0 or distributes them chaotically. If
+    an interrupt hits a core currently rendering your game, the game thread
+    pauses for a split second. You experience this as a micro-stutter, frame
+    drop, or "floaty" mouse feel.
+2.  Core Contention: Anti-cheats (BattlEye, Easy Anti-Cheat), Discord, streaming
+    software (OBS), and background apps constantly fight with the game engine
+    for cache and execution time on the exact same CPU cores.
 
-Цель W11LatencyFixer — в автоматическом или ручном режиме безопасно разнести
-очереди прерываний ключевых контроллеров по разным физическим ядрам процессора,
-перевести шину в режим MSI (Message Signaled Interrupts) и снизить системные
-DPC-задержки до рекордных < 150 нс, освободив первые ядра
-исключительно под нужды игрового движка.
+What the Software Actually Does
 
-⚙️ Как это устроено и работает под капотом
+The program establishes strict core isolation and traffic separation:
 
-1.  Аппаратное сканирование шины PCIe:
-    Утилита сканирует систему и фильтрует весь виртуальный шум (хабы,
-    виртуальные коммутаторы), находя только реальные физические контроллеры:
-    видеокарту (GPU), USB-хост (xHCI) и сетевые адаптеры (Ethernet / Wi-Fi).
-2.  Активация Message Signaled Interrupts (MSI Mode):
-    Переводит устройства из устаревшего режима Line-Based IRQ в режим прямого
-    доступа MSI/MSI-X, ликвидируя очереди ожидания на шине PCI Express.
-3.  Интеллектуальная адаптивная топология (Smart Core Pinning):
-    В зависимости от количества ядер вашего процессора (от 4-поточных i3
-    до 32-поточных i9/Ryzen 9) программа рассчитывает оптимальную маску
-    Affinity:
-      - Core 0–3: Остаются стерильно чистыми для главного потока игры и
-        планировщика ОС.
-      - Core 4: Забирает прерывания USB (мышь 1000–8000 Гц и аудиоинтерфейс).
-      - Core 5: Забирает прерывания Сетевого стека.
-      - Core 6–7: Забирают прерывания Видеокарты (GPU).
-4.  Защита MSI-X и нативный NDIS RSS:
-    В отличие от других твикеров, программа не ломает очереди сетевых карт
-    (Intel I225-V/I226-V, AX211) принудительным ограничением лимитов, а
-    синхронизирует привязку ядер через нативный системный API Set-NetAdapterRss,
-    исключая системные сбои (Код 10).
-5.  Оптимизация стриминга и процессов (OBS, Xray/VPN):
-    Позволяет привязать фоновые программы (OBS Studio, Xray) к тем же ядрам, где
-    живет сетевой стек и видеокарта. Это дает выигрыш за счет общего L3-кэша
-    процессора и гарантирует, что оверлеи стрима не отберут FPS у игры.
-6.  Автономность и самовосстановление (0% фоновой нагрузки):
-    Программа не висит в трее и не потребляет оперативную память. Она генерирует
-    нативную задачу в Планировщике задач Windows, которая автоматически
-    восстанавливает настройки прерываний при перезагрузке и даже после чистой
-    переустановки видеодрайверов NVIDIA/AMD.
+1.  Hardware Interrupt (IRQ) Affinity Routing:
+      - USB Controllers (Mouse/Keyboard): Pinned to dedicated CPU cores (e.g.,
+        Core P6) to guarantee near-instantaneous, queue-free input polling.
+      - Graphics Card (GPU): Routed to specific high-end cores (e.g., Core P7),
+        isolating the display driver from game logic.
+      - Network Adapters (Ethernet / Wi-Fi): Assigned dedicated cores (e.g.,
+        Cores P0–P1) synchronized with NDIS RSS (Receive Side Scaling) queues
+        for consistent packet delivery.
+2.  Enables Low-Latency MSI / MSI-X Mode:
+      - Forces hardware controllers into Message Signaled Interrupts (MSI) mode,
+        completely bypassing legacy line-based IRQs, resolving IRQ sharing
+        conflicts, and reducing DPC/ISR execution time.
+3.  Smart Process & Thread Dispatcher:
+      - Games are isolated onto dedicated high-performance physical cores with
+        elevated priority.
+      - Background apps & Anti-Cheats (OBS, browser pages, Discord, VPNs,
+        BattlEye) are relegated to separate infrastructure cores, preventing
+        them from stealing cache or CPU cycles from the game.
+4.  Auto-Recovery Watchdog (Driver-Reset Protection):
+      - Installing or updating GPU (NVIDIA/AMD) or NIC (Intel) drivers wipes
+        custom registry affinity rules. The built-in ultra-lightweight Watchdog
+        service monitors device states and automatically restores your tuned
+        masks and MSI modes on the fly.
 
-🛠️ Стек технологий и реализация
+The End Result:
 
-  - Язык: Python 3.10+ (компилируется в единый автономный .exe).
-  - GUI / Фронтенд: CustomTkinter (современный темный Fluent/Flat интерфейс,
-    динамическая адаптивная сетка капсул ядер).
-  - Бэкенд: Нативные вызовы winreg, Windows PnP API, NDIS Network API, psutil,
-    PowerShell.
+Crisp and immediate mouse responsiveness, smoother frametimes, higher 1%
+and 0.1% Low FPS, and an end to random stuttering during fast-paced in-game
+action.
+
+===============================
+
+Universal Rules & Setup Guide for Any Game
+
+3 Golden Rules of Core Allocation:
+
+1.  Hardware (Interrupts / IRQs) — Outer Cores:
+
+      - Network (NIC): Cores P0–P1 (shared with Windows base system timers).
+      - USB (Mouse/Keyboard): Second-to-last P-core (e.g., P6). Priority: High.
+      - Graphics Card (GPU): Very last P-core (e.g., P7). Priority: Undefined.
+      - Always ensure "MSI Mode" is checked.
+
+2.  The Game — Clean Center P-Cores:
+
+      - Assign the game dedicated middle cores (e.g., P1–P5 or P2–P5).
+      - Crucial: Never let the game share physical cores with GPU or USB mouse
+        interrupts.
+      - Priority: AboveNormal (optimal responsiveness; avoid High as it can
+        starve audio and input threads).
+
+3.  Background Apps & Anti-Cheats — Isolation Zone:
+
+      - Route Discord, OBS, VPNs, and anti-cheat engines (BEService.exe,
+        EasyAntiCheat.exe, vgc.exe) to Cores P0–P1 or to E-cores (on hybrid
+        Intel CPUs).
+      - Priority: strictly Normal.
+
+Step-by-Step 1-Minute Setup:
+
+1.  Click "🚀 Reference Preset" — the engine will automatically route GPU, USB,
+    Network, and base infrastructure to optimal cores.
+2.  Click "📁 Browse .exe" and select your game's main executable (or pick it
+    from the running processes list).
+3.  Click "➕ Add Process".
+4.  On your game's card, tick the middle P-cores (uncheck P0, as well as the GPU
+    and USB cores) and set the priority to AboveNormal.
+5.  Click "⚡ Apply Settings" \to "💾 Install Watchdog" \to Reboot your PC.
 
 
 
 <img width="1375" height="603" alt="image" src="https://github.com/user-attachments/assets/1d1d6887-2531-477d-8f5a-993d96303e86" />
 
 
+Что это за программа?
+
+W11LatencyFixer Pro — это системная утилита для глубокой оптимизации
+Windows 11/10, предназначенная для геймеров и киберспортсменов. Её главная цель
+— минимизировать задержку ввода (input lag), убрать микрофризы и сделать график
+времени кадра (frametime) максимально плавным.
+
+Какую проблему она решает?
+
+В стандартной Windows системные устройства (видеокарта, сетевая карта, USB-порты
+мыши) и сторонние программы борются за одни и те же ядра процессора:
+
+1.  Прерывания устройств (IRQ): Когда вы двигаете мышью с высокой частотой
+    опроса (1000–8000 Гц) или видеокарта заканчивает рендеринг кадра, они
+    отправляют сигнал процессору («аппаратное прерывание»). По умолчанию Windows
+    часто сбрасывает эти прерывания на нулевое ядро или размазывает их случайным
+    образом, прерывая работу игрового движка. В игре это ощущается как внезапный
+    микростаттер или "ватное", неотзывчивое управление.
+2.  Конфликт процессов: Античиты (BattlEye, Easy Anti-Cheat), OBS для стриминга,
+    Discord и фоновые VPN-сервисы работают на тех же ядрах, что и игра, отбирая
+    ресурсы в критические моменты перестрелок.
+
+Что конкретно делает программа?
+
+Программа наводит строгий порядок в распределении ресурсов процессора по
+принципу «разделяй и властвуй»:
+
+1.  Изолирует прерывания "железа" на выделенные ядра:
+      - Мышь и клавиатура (USB): Направляются на отдельные ядра (например, P6),
+        чтобы клики и движения мыши считывались мгновенно без очередей.
+      - Видеокарта (GPU): Привязывается к крайним ядрам (например, P7), устраняя
+        задержки драйвера дисплея.
+      - Сетевая карта (Ethernet/Wi-Fi): Закрепляется за отдельными ядрами
+        (например, P0–P1) вместе с настройкой очередей NDIS RSS для стабильного
+        пинга.
+2.  Переводит устройства в скоростной режим MSI/MSI-X:
+      - Включает режим прерываний на основе сообщений (Message Signaled
+        Interrupts), полностью исключая задержки устаревших прерываний
+        (Line-based IRQ) и конфликты устройств на одной линии.
+3.  Разделяет потоки игр и фонового софта:
+      - Играм (например, Escape from Tarkov) выделяются чистые физические ядра с
+        повышенным приоритетом.
+      - Фоновым службам (OBS, браузер, Discord, античит) выделяются служебные
+        ядра, чтобы они физически не могли отбирать ресурсы у игрового процесса.
+4.  Защищает настройки от сброса драйверами (Watchdog):
+      - При каждом обновлении драйверов NVIDIA или Intel Windows стирает
+        оптимизации. Встроенная незаметная фоновая служба автоматически
+        проверяет реестр и возвращает ваши настройки на место.
+
+Результат для игрока:
+
+Снижение задержки отклика мыши, стабильный 1% и 0.1% Low FPS, устранение
+внезапных рывков при резких движениях камеры и стабильная сетевая синхронизация.
 
 
+==========================
 
 
+🇷🇺 Универсальные правила и настройка для любой игры
 
+3 Золотых правила распределения ядер:
 
+1.  Железо (Прерывания / IRQ) — по краям:
 
+      - Сетевая карта: Ядра P0–P1 (совместно с системными службами Windows).
+      - USB (Мышь/Клавиатура): Предпоследнее P-ядро (например, P6). Приоритет:
+        High.
+      - Видеокарта (GPU): Последнее P-ядро (например, P7). Приоритет: Undefined.
+      - Всегда включайте галочку «Режим MSI».
 
-#LatencyMon #MsiUtilityv3 #Interrupt_Affinity_Policy_Tool
-============================================
+2.  Сама игра — чистые ядра по центру:
 
+      - Отдайте игре свободные средние ядра (например, P1–P5 или P2–P5).
+      - Главное: игра не должна делить ядра с прерываниями USB (мыши) и
+        видеокарты.
+      - Приоритет: AboveNormal (лучший баланс между отзывчивостью и
+        стабильностью; приоритет High ставить не рекомендуется, чтобы игра не
+        заглушала аудио- и системные потоки ввода).
 
-EN English Version (README.md)
+3.  Фоновый софт и античиты — в «резервацию»:
 
-⚡ W11LatencyFixer
+      - Discord, OBS, Telegram, VPN, античиты (BEService.exe, EasyAntiCheat.exe,
+        vgc.exe) отправляйте на ядра P0–P1 или на E-ядра (если процессор с
+        гибридной архитектурой).
+      - Приоритет: строго Normal.
 
-Low-level hardware interrupt (DPC/ISR), MSI mode, and core affinity tuner for
-Windows 11 / 10.
+Пошаговая настройка за 1 минуту:
 
-🎯 Purpose & Project Objective
-
-By default, Windows routes almost all hardware interrupts (GPU render fences,
-network packets, USB mouse polling) to the very first CPU core — Core 0 (CPU 0).
-Under heavy gaming, live-streaming, or digital audio production (DAW) workloads,
-Core 0 becomes overwhelmed with interrupt queues, leading to micro-stuttering,
-inconsistent mouse input lag, 0.1% low FPS frame drops, and audio buffer
-underruns (xruns/clicks).
-
-The goal of W11LatencyFixer is to safely distribute hardware interrupts across
-dedicated physical CPU cores, enforce high-priority Message Signaled Interrupts
-(MSI/MSI-X), and achieve 150 ns DPC latencies while keeping
-primary CPU cores 100% clean for game rendering loops.
-
-⚙️ How It Works (Under the Hood)
-
-1.  Hardware PCIe Scanning:
-    Enumerates physical PCIe controllers and filters out virtual root hubs,
-    software bridges, and VPN devices, exposing only true actionable
-    controllers: GPU, USB xHCI, and Network Adapters (Ethernet / Wi-Fi).
-2.  Message Signaled Interrupts (MSI/MSI-X) Activation:
-    Transitions devices from legacy Line-Based IRQs to direct DMA MSI mode,
-    eliminating PCI bus contention and interrupt sharing penalties.
-3.  Adaptive CPU Core Pinning:
-    Dynamically calculates mathematical affinity masks tailored to your exact
-    CPU thread count (4T up to 32T+):
-      - Core 0–3: Kept completely clean for the Game Engine's main render loop
-        and OS dispatcher.
-      - Core 4: Dedicated to USB interrupts (high-polling mice 1000–8000 Hz and
-        USB Audio DACs).
-      - Core 5: Dedicated to Network interrupts.
-      - Core 6–7: Dedicated to GPU fences, VSync, and NVENC completions.
-4.  Safe MSI-X Vectoring & NDIS RSS Synchronization:
-    Unlike generic tweakers that crash multi-queue NICs (e.g., Intel
-    I225-V/I226-V, Wi-Fi 6E AX211) by forcing invalid message limits,
-    W11LatencyFixer preserves native MSI-X hardware limits and synchronizes core
-    routing through the official Set-NetAdapterRss API.
-5.  Streaming & Process Latency Tuning (OBS / Xray / VPN):
-    Enables assigning background processes (e.g., obs64.exe, xray.exe) to
-    network/GPU-adjacent cores. This maximizes L3 cache locality while
-    preventing streaming overlays from stealing render quantum time from the
-    game.
-6.  Zero Background Overhead & Driver Update Persistence:
-    The application does not run resident background services. It registers a
-    lightweight native Windows Scheduled Task that automatically ensures
-    interrupt masks and MSI settings remain intact after Windows reboots and GPU
-    driver updates.
-
-🛠️ Tech Stack & Architecture
-
-  - Language: Python 3.10+ (bundled into a standalone single-file .exe).
-  - GUI: CustomTkinter (Modern Dark Fluent UI with interactive, color-coded Core
-    Capsules).
-  - System Layer: winreg (Windows Registry API), PnP Device Manager, NDIS 6.x
-    RSS Engine, psutil, PowerShell.
-
-
-
-#####################################################################
-
-#####################################################################
-
-УНИВЕРСАЛЬНЫЙ ГАЙД ПО РАСПРЕДЕЛЕНИЮ ПРЕРЫВАНИЙ И ЯДЕР ДЛЯ ЛЮБОГО ПК
-
-Главный принцип: «Сверху–Вниз» (Top-Down Topology)
-
-1.  Нижние ядра (Core 0, 1...): Оставляем стерильно чистыми под планировщик
-    Windows и рендеринг игры (0 прерываний от железа).
-2.  Верхние ядра (High Core IDs): Отдаем под прерывания оборудования и фоновые
-    процессы.
-
-📊 1. Универсальная матрица привязки по процессорам
-
-| Процессор / Потоки               | 🎮 ВИДЕОКАРТА (GPU)           | 🌐 СЕТЬ + OBS + XRAY         | 🔌 USB (Мышь 1–8кГц)     | 🎯 ЧИСТАЯ ЗОНА (Игра + ОС)          |
-| :------------------------------- | :--------------------------: | :-------------------------: | :---------------------: | :--------------------------------: |
-| **4C / 8T** *(i3 / Ryzen 3)*     | **Core 3** *(0x00C0)*        | **Core 2** *(0x0030)*       | **Core 1** *(0x000C)*   | **Core 0** *(CPU 0, 1)*            |
-| **6C / 12T** *(i5 / Ryzen 5)*    | **Core 5** *(0x0C00)*        | **Core 3, 4** *(0x03C0)*    | **Core 2** *(0x0030)*   | **Core 0, 1** *(CPU 0–3)*          |
-| **8C / 16T** *(i7 / Ryzen 7)*    | **Core 7** *(0xC000)*        | **Core 5, 6** *(0x3C00)*    | **Core 4** *(0x0300)*   | **Core 0, 1, 2, 3** *(CPU 0–7)*    |
-| **12C+ / 24T+** *(i9 / Ryzen 9)* | **Core 11** *(Верхнее ядро)* | **Core 9, 10** *(4 потока)* | **Core 8** *(2 потока)* | **Core 0–7** *(8 ядер под игру\!)* |
-
-⚙️ 2. Пошаговый алгоритм настройки
-
-Шаг 1. Перевод в режим MSI (Message Signaled Interrupts)
-
-  - Для Видеокарты (GPU), USB-хоста и Сетевой карты (NIC) включить режим MSI.
-  - Приоритет прерываний (DevicePriority) для всех трех узлов выставить в High
-    (снижает задержку сброса очередей в память).
-
-Шаг 2. Назначение ядер устройствам (через W11LatencyFixer или IntPolicy)
-
-1.  Видеокарта (NVIDIA / AMD): Выделяем 1 физическое ядро (2 потока) на самом
-    краю процессора.
-    (GPU имеет 1 вектор прерывания, монопольное ядро исключает спинлоки).
-2.  Сетевой адаптер (Ethernet / Wi-Fi): Выделяем 1–2 физических ядра (2–4
-    потока).
-    (Сетевые чипы Intel/Realtek поддерживают 2–4 очереди RSS).
-3.  USB xHCI Контроллер: Выделяем 1 физическое ядро (2 потока).
-    (Изолирует высокогерцовый опрос мыши 1000–8000 Гц и USB-звук от других
-    устройств).
-
-Шаг 3. Привязка фоновых программ (OBS, VPN / Xray)
-
-  - OBS Studio (obs64.exe): Назначить на те же ядра, где живет Сеть (например,
-    Core 5, 6 на 16T).
-    Приоритет: Normal. (OBS кодирует через NVENC/AMF, не мешая видеокарте на
-    Core 7 и не отбирая FPS у игры на Core 0–3).
-  - Xray / VPN (xray.exe): Назначить на ядра Сети (Core 5, 6).
-    Приоритет: AboveNormal. (Шифрование пакетов происходит прямо в L2/L3-кэше
-    сетевой карты без задержек шины).
-
-⚠️ 3. Золотые правила (Чего делать НЕЛЬЗЯ)
-
-1.  ❌ Не сажайте OBS на ядро видеокарты: Это вызовет конфликт блокировок
-    графического стека (dxgkrnl.sys) и спайк задержки DPC выше 1000 µs.
-2.  ❌ Не пускайте тяжелые программы на ядро USB: Ядро мыши должно оставаться
-    свободным от постороннего софта для мгновенного считывания ввода.
-3.  ❌ Не выделяйте под Сеть нечетное количество потоков: Очереди NDIS RSS
-    работают строго по степеням двойки (2^N = 2, 4, 8). Оптимально для домашнего
-    ПК — ровно 2 или 4 потока.
-4.  ❌ Не трогайте ядра игры (Core 0..3): Игровой процесс должен свободно
-    использовать первые физические ядра без конкуренции с прерываниями
-    периферии.
-
-
+1.  Нажмите «🚀 Эталонный пресет» — программа автоматически разнесет видеокарту,
+    мышь, сеть и фоновые процессы по правильным ядрам.
+2.  В строке добавления процессов нажмите «📁 Обзор .exe» и выберите исполняемый
+    файл вашей игры (или выберите его из списка запущенных).
+3.  Нажмите «➕ Добавить».
+4.  В карточке игры выберите средние P-ядра (снимите галочки с ядер мыши,
+    видеокарты и P0), а приоритет переключите на AboveNormal.
+5.  Нажмите «⚡ Применить настройки» \to «💾 Включить службу» \to Перезагрузите
+    ПК.
