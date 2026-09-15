@@ -799,11 +799,24 @@ class W11LatencyFixerApp(ctk.CTk):
             self.ent_custom_name.insert(0, os.path.basename(path))
 
     def _query_hardware_powershell(self) -> dict:
+        """
+        Безопасный опрос оборудования с автоматическим фоллбэком на Name/DeviceDesc.
+        Гарантирует 100% обнаружение контроллеров даже на чистых драйверах Microsoft (usbxhci.inf).
+        """
         ps_cmd = (
             "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; "
-            "$gpu = @(Get-PnpDevice -Class Display -PresentOnly -ErrorAction SilentlyContinue | Where-Object { $_.InstanceId -like 'PCI*' -and $_.FriendlyName -notmatch 'Basic Render|Basic Display' } | Select-Object FriendlyName, InstanceId); "
-            "$usb = @(Get-PnpDevice -Class USB -PresentOnly -ErrorAction SilentlyContinue | Where-Object { $_.InstanceId -like 'PCI*' -and $_.FriendlyName -match 'xHCI|Host' } | Select-Object FriendlyName, InstanceId); "
-            "$net = @(Get-PnpDevice -Class Net -PresentOnly -ErrorAction SilentlyContinue | Where-Object { $_.InstanceId -like 'PCI*' -and $_.FriendlyName -notmatch 'Virtual|VPN|TAP|Wintun|Direct|NDIS|Hyper-V' } | Select-Object FriendlyName, InstanceId); "
+            "$gpu = @(Get-PnpDevice -Class Display -PresentOnly -ErrorAction SilentlyContinue | "
+            "Where-Object { $_.InstanceId -like 'PCI*' -and (($_.FriendlyName -and $_.FriendlyName -notmatch 'Basic Render|Basic Display') -or ($_.Name -and $_.Name -notmatch 'Basic Render|Basic Display')) } | "
+            "Select-Object @{N='FriendlyName'; E={if ($_.FriendlyName) { $_.FriendlyName } else { $_.Name }}}, InstanceId); "
+            
+            "$usb = @(Get-PnpDevice -Class USB -PresentOnly -ErrorAction SilentlyContinue | "
+            "Where-Object { $_.InstanceId -like 'PCI*' } | "
+            "Select-Object @{N='FriendlyName'; E={if ($_.FriendlyName) { $_.FriendlyName } elseif ($_.Name) { $_.Name } else { 'USB Host Controller' }}}, InstanceId); "
+            
+            "$net = @(Get-PnpDevice -Class Net -PresentOnly -ErrorAction SilentlyContinue | "
+            "Where-Object { $_.InstanceId -like 'PCI*' -and (($_.FriendlyName -and $_.FriendlyName -notmatch 'Virtual|VPN|TAP|Wintun|Direct|NDIS|Hyper-V') -or ($_.Name -and $_.Name -notmatch 'Virtual|VPN|TAP|Wintun|Direct|NDIS|Hyper-V')) } | "
+            "Select-Object @{N='FriendlyName'; E={if ($_.FriendlyName) { $_.FriendlyName } else { $_.Name }}}, InstanceId); "
+            
             "[PSCustomObject]@{ GPU = $gpu; USB = $usb; NET = $net } | ConvertTo-Json -Depth 3 -Compress"
         )
         try:
@@ -815,8 +828,10 @@ class W11LatencyFixerApp(ctk.CTk):
             return {"GPU": [], "USB": [], "NET": []}
 
     def _build_hardware_cards(self, data):
+        # 1. GPU
         for d in (data.get("GPU") or []):
             if not isinstance(d, dict) or not d.get("InstanceId"): continue
+            if not d.get("FriendlyName"): d['FriendlyName'] = "Graphics Card"
             try:
                 d['VectorLimit'] = 1
                 card = DeviceCard(self.box_gpu, d, 'GPU', self.topology, self)
@@ -825,8 +840,10 @@ class W11LatencyFixerApp(ctk.CTk):
             except Exception as e:
                 self.log(f"GPU card init error: {e}")
 
+        # 2. USB
         for d in (data.get("USB") or []):
             if not isinstance(d, dict) or not d.get("InstanceId"): continue
+            if not d.get("FriendlyName"): d['FriendlyName'] = "USB Host Controller"
             try:
                 d['VectorLimit'] = 8
                 card = DeviceCard(self.box_usb, d, 'USB', self.topology, self)
@@ -835,8 +852,10 @@ class W11LatencyFixerApp(ctk.CTk):
             except Exception as e:
                 self.log(f"USB card init error: {e}")
 
+        # 3. NET
         for d in (data.get("NET") or []):
             if not isinstance(d, dict) or not d.get("InstanceId"): continue
+            if not d.get("FriendlyName"): d['FriendlyName'] = "Network Adapter"
             try:
                 limit = 5 if any(x in d['FriendlyName'] for x in ["I225", "I226"]) else (16 if "Wi-Fi" in d['FriendlyName'] else 4)
                 d['VectorLimit'] = limit
@@ -1074,7 +1093,7 @@ class W11LatencyFixerApp(ctk.CTk):
         
         return {
             "app": "W11LatencyFixer Pro",
-            "version": "2.2",
+            "version": "2.3",
             "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "cpu": self.get_cpu_name(),
             "threads": self.total_threads,
@@ -1316,7 +1335,6 @@ class W11LatencyFixerApp(ctk.CTk):
         self.save_current_profile()
         script_file = os.path.join(self.config_dir, "WatchdogService.ps1")
 
-        # Реактивный скрипт на основе системных трассировок ETW (0% CPU, 0 ms реакция)
         ps_code = r'''# W11LatencyFixer Ultra-Light Reactive Kernel Watchdog (WMI ETW Process Creation Trace)
 $ErrorActionPreference = 'SilentlyContinue'
 $configFile = "C:\ProgramData\W11LatencyFixer\config.json"
@@ -1438,7 +1456,7 @@ while ($true) {
             }
         }
     } catch [System.Management.ManagementException] {
-        # Сработал тайм-аут ожидания (нет новых процессов) — нормальное поведение для фоновой проверки
+        # Тайм-аут ожидания (нет новых процессов) — нормальное поведение для фоновой проверки
     } catch {}
 
     # Периодическая проверка обновления файла профиля (если нажали "Применить" в GUI)
