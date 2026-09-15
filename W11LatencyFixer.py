@@ -113,7 +113,7 @@ TEXTS = {
         "log_imported": "Profile successfully loaded from: {path}",
         "log_export_err": "Export failed: {err}",
         "log_import_err": "Import failed: {err}",
-        "log_task_ok": "✅ Watchdog Service registered with auto-recovery protection.",
+        "log_task_ok": "✅ Watchdog Service registered with auto-recovery protection (Session 0).",
         "log_task_del": "❌ Watchdog Service stopped and removed.",
         "log_driver_recovered": "🛡️ Auto-restored driver settings for: {name}",
         "log_lang_switch": "Language switched to English."
@@ -167,7 +167,7 @@ TEXTS = {
         "log_imported": "Профиль успешно загружен из: {path}",
         "log_export_err": "Ошибка экспорта: {err}",
         "log_import_err": "Ошибка импорта: {err}",
-        "log_task_ok": "✅ Служба автоприменения зарегистрирована и защищает от сброса драйверов.",
+        "log_task_ok": "✅ Фоновая служба автозащиты запущена в Session 0 (без окон и Alt+Tab).",
         "log_task_del": "❌ Фоновая служба остановлена и удалена из системы.",
         "log_driver_recovered": "🛡️ Восстановлены настройки после сброса драйвером: {name}",
         "log_lang_switch": "Язык интерфейса изменен на Русский."
@@ -180,7 +180,7 @@ TEXTS = {
 def get_native_cpu_topology():
     """
     Определяет физические P/E ядра и потоки через GetLogicalProcessorInformationEx.
-    Поддерживает Intel Core 12-15th Gen (включая Arrow Lake без HT), AMD и SMT-Off.
+    Поддерживает Intel Core 12-15th Gen, AMD и SMT-Off конфигурации.
     """
     total_threads = os.cpu_count() or 16
     glpi = ctypes.windll.kernel32.GetLogicalProcessorInformationEx
@@ -460,7 +460,6 @@ class DeviceCard(ctk.CTkFrame):
                 except OSError:
                     pass
                 
-                # Читаем маску для ВСЕХ устройств (включая сетевые адаптеры!)
                 try:
                     pol, _ = winreg.QueryValueEx(k, "DevicePolicy")
                     if pol == 4:
@@ -927,7 +926,6 @@ class W11LatencyFixerApp(ctk.CTk):
             return {"prio": "AboveNormal", "mask": masks["infra"]}
         elif any(x in name for x in ["obs-browser", "obs64", "obs", "streamlabs"]):
             return {"prio": "Normal", "mask": masks["infra"]}
-        # Античит-процессы и BE-врапперы классифицируются ДО основной игры:
         elif any(x in name for x in ["beservice", "_be.exe", "_be", "battleye", "easyanticheat", "vgc"]):
             return {"prio": "Normal", "mask": masks["infra"]}
         elif any(x in name for x in ["escapefromtarkov", "tarkov"]):
@@ -1163,7 +1161,7 @@ class W11LatencyFixerApp(ctk.CTk):
             self.log(self.t("log_import_err", err=str(e)))
 
     def load_saved_profile(self):
-        """Загружает сохраненный профиль и АВТОМАТИЧЕСКИ восстанавливает настройки оборудования при сбросе драйверами."""
+        """Загружает сохраненный профиль и восстанавливает настройки оборудования при сбросе драйверами."""
         if os.path.exists(self.config_file):
             try:
                 with open(self.config_file, "r", encoding="utf-8") as f:
@@ -1183,14 +1181,12 @@ class W11LatencyFixerApp(ctk.CTk):
                             saved_prio = matched.get("priority", "Undefined")
                             saved_msi = matched.get("msi", 1)
                             
-                            # Текущее состояние из реестра
                             current_reg_mask = card.grid.get_mask()
                             
                             card.grid.set_mask(saved_mask)
                             card.cmb_prio.set(saved_prio)
                             card.chk_msi.select() if saved_msi else card.chk_msi.deselect()
                             
-                            # Если драйвер затер реестр (маска стала 0, но в профиле была задана) — сразу восстанавливаем!
                             if current_reg_mask == 0 and saved_mask > 0:
                                 self.write_device_reg(card)
                                 self.log(self.t("log_driver_recovered", name=card.dev_info['FriendlyName']))
@@ -1203,7 +1199,7 @@ class W11LatencyFixerApp(ctk.CTk):
             except Exception:
                 pass
         
-        # Полный эталонный набор из 6 процессов по умолчанию:
+        # Полный эталонный набор по умолчанию
         masks = self.calc_preset_masks()
         defaults = [
             ("xray.exe", "AboveNormal", masks["infra"]),
@@ -1239,7 +1235,7 @@ class W11LatencyFixerApp(ctk.CTk):
                 elif dev_card.original_limit is not None:
                     winreg.SetValueEx(k_msi, "MessageNumberLimit", 0, winreg.REG_DWORD, dev_card.original_limit)
 
-            # 2. Запись Affinity Policy (Одинаково полноценно для GPU, USB и СЕТИ)
+            # 2. Запись Affinity Policy
             with winreg.CreateKeyEx(winreg.HKEY_LOCAL_MACHINE, aff_path, 0, winreg.KEY_READ | winreg.KEY_WRITE) as k_aff:
                 if prio_str == "Undefined":
                     try: winreg.DeleteValue(k_aff, "DevicePriority")
@@ -1277,7 +1273,7 @@ class W11LatencyFixerApp(ctk.CTk):
                         f"-NumberOfReceiveQueues {num_queues} -Profile Conservative -ErrorAction SilentlyContinue "
                         f"}}"
                     )
-                    subprocess.run(["powershell", "-NoProfile", "-Command", rss_cmd], capture_output=True, timeout=10)
+                    subprocess.run(["powershell", "-NoProfile", "-NonInteractive", "-Command", rss_cmd], capture_output=True, timeout=10)
 
             self.log(self.t("log_dev_saved", name=dev_card.dev_info['FriendlyName'], msi=msi, prio=prio_str, mask=mask_val))
             return True
@@ -1299,7 +1295,6 @@ class W11LatencyFixerApp(ctk.CTk):
             "High": psutil.HIGH_PRIORITY_CLASS
         }
 
-        # Однопроходный опрос запущенных процессов
         active_processes = {}
         for p in psutil.process_iter(['name', 'pid']):
             try:
@@ -1320,7 +1315,6 @@ class W11LatencyFixerApp(ctk.CTk):
             if not cores: cores = list(range(self.total_threads))
             prio = p_prio_map.get(r.cmb_prio.get(), psutil.NORMAL_PRIORITY_CLASS)
 
-            # Регистрация в Image File Execution Options (IFEO)
             try:
                 ifeo_path = rf"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\{p_name}\PerfOptions"
                 with winreg.CreateKeyEx(winreg.HKEY_LOCAL_MACHINE, ifeo_path, 0, winreg.KEY_READ | winreg.KEY_WRITE) as k_ifeo:
@@ -1346,12 +1340,13 @@ class W11LatencyFixerApp(ctk.CTk):
         self.log(self.t("log_applied"))
 
     def install_persistent_service(self):
-        """Регистрирует оптимизированную службу автоприменения настроек с ЗАЩИТОЙ ОТ СБРОСА ДРАЙВЕРАМИ."""
+        """Регистрирует службу автоприменения настроек в защищенной Session 0 (SYSTEM)."""
         self.save_current_profile()
         script_file = os.path.join(self.config_dir, "WatchdogService.ps1")
 
-        # Служба восстанавливает устройства на логоне и каждые 30 сек проверяет, не затер ли драйвер ключи реестра
+        # Фоновый скрипт с подавлением ошибок UI
         ps_code = r'''# W11LatencyFixer Ultra-Light Persistent Watchdog with Auto-Driver-Recovery
+$ErrorActionPreference = 'SilentlyContinue'
 $configFile = "C:\ProgramData\W11LatencyFixer\config.json"
 $lastModified = $null
 $cachedCfg = $null
@@ -1387,7 +1382,7 @@ function Restore-DeviceSettings($cfg) {
                     Set-ItemProperty $affPath -Name "DevicePriority" -Value $pr -Type DWord
                 }
 
-                # 3. Проверка и восстановление маски прерываний (после переустановки драйверов)
+                # 3. Проверка и восстановление маски прерываний
                 $maskVal = [Convert]::ToUInt64($dev.mask)
                 if ($maskVal -gt 0) {
                     $currPol = (Get-ItemProperty -Path $affPath -Name "DevicePolicy" -ErrorAction SilentlyContinue).DevicePolicy
@@ -1416,7 +1411,7 @@ function Restore-DeviceSettings($cfg) {
     }
 }
 
-# 1. Сразу применяем настройки устройств при логоне системы
+# 1. Применяем настройки устройств при старте
 if (Test-Path $configFile) {
     try {
         $cachedCfg = Get-Content $configFile -Raw | ConvertFrom-Json
@@ -1425,7 +1420,7 @@ if (Test-Path $configFile) {
     } catch {}
 }
 
-# 2. Основной цикл: легковесный контроль процессов каждые 5 сек + проверка оборудования каждые 30 сек
+# 2. Основной цикл: контроль процессов каждые 5 сек + проверка оборудования каждые 30 сек
 while ($true) {
     if (Test-Path $configFile) {
         try {
@@ -1436,7 +1431,6 @@ while ($true) {
                 Restore-DeviceSettings $cachedCfg
             }
             
-            # Проверка оборудования каждые 30 секунд (защита от "горячего" обновления драйвера без перезагрузки)
             $devCheckTick++
             if ($devCheckTick -ge 6) {
                 $devCheckTick = 0
@@ -1466,16 +1460,30 @@ while ($true) {
 }
 '''
         try:
+            # 1. Останавливаем предыдущие экземпляры перед установкой
+            subprocess.run('schtasks /end /tn "W11LatencyFixerWatchdog"', shell=True, capture_output=True)
+            subprocess.run(
+                ["powershell", "-NoProfile", "-NonInteractive", "-Command", 
+                 "Get-CimInstance Win32_Process -Filter \"CommandLine like '%WatchdogService.ps1%'\" | Stop-Process -Force -ErrorAction SilentlyContinue"],
+                capture_output=True
+            )
+
+            # 2. Записываем свежий скрипт
             with open(script_file, "w", encoding="utf-8-sig") as f:
                 f.write(ps_code)
 
+            # 3. Регистрируем задачу от имени NT AUTHORITY\SYSTEM (Session 0).
+            # В Session 0 нет GUI, conhost и DWM-окон, поэтому Alt+Tab никогда не зафиксирует окно!
             task_cmd = (
                 f'schtasks /create /tn "W11LatencyFixerWatchdog" '
-                f'/tr "powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File \\"{script_file}\\"" '
-                f'/sc onlogon /rl highest /f'
+                f'/tr "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -WindowStyle Hidden -File \\"{script_file}\\"" '
+                f'/sc onlogon /ru "NT AUTHORITY\\SYSTEM" /rl highest /f'
             )
             res = subprocess.run(task_cmd, shell=True, capture_output=True, text=True)
+            
             if res.returncode == 0:
+                # 4. Сразу же запускаем службу в фоне
+                subprocess.run('schtasks /run /tn "W11LatencyFixerWatchdog"', shell=True, capture_output=True)
                 self.log(self.t("log_task_ok"))
             else:
                 self.log(f"SchTasks Error: {res.stderr.strip()}")
@@ -1483,8 +1491,16 @@ while ($true) {
             self.log(f"Watchdog install error: {e}")
 
     def remove_persistent_service(self):
-        """Останавливает активный процесс в памяти и удаляет задание."""
+        """Останавливает процесс службы в памяти и полностью удаляет задание."""
         subprocess.run('schtasks /end /tn "W11LatencyFixerWatchdog"', shell=True, capture_output=True)
+        
+        # Гарантированно гасим powershell, исполняющий WatchdogService.ps1
+        subprocess.run(
+            ["powershell", "-NoProfile", "-NonInteractive", "-Command",
+             "Get-CimInstance Win32_Process -Filter \"CommandLine like '%WatchdogService.ps1%'\" | Stop-Process -Force -ErrorAction SilentlyContinue"],
+            capture_output=True
+        )
+
         res = subprocess.run('schtasks /delete /tn "W11LatencyFixerWatchdog" /f', shell=True, capture_output=True, text=True)
         if res.returncode == 0:
             self.log(self.t("log_task_del"))
